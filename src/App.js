@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { gql, useLazyQuery } from "@apollo/client";
 import SearchField from "react-search-field";
+import FbImageLibrary from "react-fb-image-grid";
 
 const GetArtistMBID = gql`
   query GetArtistMBID($artist: String!) {
@@ -20,7 +21,7 @@ const GetArtistMBID = gql`
 `;
 
 const GetArtistAlbums = gql`
-  query NirvanaAlbumSingles($mbid: MBID!) {
+  query GetArtistAlbums($mbid: MBID!) {
     lookup {
       artist(mbid: $mbid) {
         name
@@ -29,6 +30,10 @@ const GetArtistAlbums = gql`
             node {
               title
               firstReleaseDate
+              coverArtArchive {
+                front
+                back
+              }
             }
           }
         }
@@ -39,20 +44,30 @@ const GetArtistAlbums = gql`
 
 function App() {
   const [searchString, setSearchString] = useState("");
+  const [albums, setAlbums] = useState({});
 
-  const [ loadGetArtistAlbums, { errorAlbum, loadingAlbum, albumData } ] = useLazyQuery(GetArtistAlbums, {
-    onCompleted: (dataa) => console.log(dataa)
+  const [
+    loadGetArtistAlbums,
+    { errorAlbum, loadingAlbum, albumData },
+  ] = useLazyQuery(GetArtistAlbums, {
+    onCompleted: (queriedAlbums) => {
+      setAlbums(queriedAlbums.lookup.artist.releaseGroups.edges);
+      console.log(queriedAlbums.lookup.artist.releaseGroups.edges);
+    },
   });
 
   const [loadGetArtistMBID, { error, loading, data }] = useLazyQuery(
     GetArtistMBID,
     {
-      onCompleted: (data) => loadGetArtistAlbums({ variables: { mbid: data.search.artists.edges[0].node.mbid } }),
+      onCompleted: (data) =>
+        loadGetArtistAlbums({
+          variables: { mbid: data.search.artists.edges[0].node.mbid },
+        }),
     }
   );
 
-  if (loading) return <p>LOADING</p>;
-  if (error) return <p>ERROR JQJ</p>;
+  if (loading) return <p>Loading... </p>;
+  if (error) return <p>Error...</p>;
 
   const onChange = (value, event) => {
     setSearchString(value);
@@ -63,9 +78,18 @@ function App() {
   };
 
   const onSearchClick = (value) => {
+    // TODO: clear state before each search
     loadGetArtistMBID({
       variables: { artist: value },
     });
+  };
+
+  const generateImage = (albums) => {
+    return albums
+      .map((album) => {
+        return album.node.coverArtArchive.front;
+      })
+      .filter((url) => !!url);
   };
 
   return (
@@ -76,6 +100,12 @@ function App() {
         onEnter={onEnter}
         onSearchClick={onSearchClick}
       />
+
+      {albums.length > 0 ? (
+        <FbImageLibrary images={generateImage(albums)} />
+      ) : (
+        ""
+      )}
     </div>
   );
 }
