@@ -1,25 +1,81 @@
-import React from "react";
-import { gql, useQuery } from "@apollo/client";
+import React, { useState } from "react";
+import { gql, useLazyQuery } from "@apollo/client";
+import SearchField from "react-search-field";
 
-const TEST = gql`
-  query GetSpecificSong {
+const GetArtistMBID = gql`
+  query GetArtistMBID($artist: String!) {
+    search {
+      artists(query: $artist, first: 1) {
+        edges {
+          node {
+            id
+            mbid
+            name
+            disambiguation
+          }
+        }
+      }
+    }
+  }
+`;
+
+const GetArtistAlbums = gql`
+  query NirvanaAlbumSingles($mbid: MBID!) {
     lookup {
-      releaseGroup(mbid: "99599db8-0e36-4a93-b0e8-350e9d7502a9") {
-        title
+      artist(mbid: $mbid) {
+        name
+        releaseGroups(type: ALBUM) {
+          edges {
+            node {
+              title
+              firstReleaseDate
+            }
+          }
+        }
       }
     }
   }
 `;
 
 function App() {
-  const { loading, error, data } = useQuery(TEST);
+  const [searchString, setSearchString] = useState("");
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error...</p>;
+  const [ loadGetArtistAlbums, { errorAlbum, loadingAlbum, albumData } ] = useLazyQuery(GetArtistAlbums, {
+    onCompleted: (dataa) => console.log(dataa)
+  });
+
+  const [loadGetArtistMBID, { error, loading, data }] = useLazyQuery(
+    GetArtistMBID,
+    {
+      onCompleted: (data) => loadGetArtistAlbums({ variables: { mbid: data.search.artists.edges[0].node.mbid } }),
+    }
+  );
+
+  if (loading) return <p>LOADING</p>;
+  if (error) return <p>ERROR JQJ</p>;
+
+  const onChange = (value, event) => {
+    setSearchString(value);
+  };
+
+  const onEnter = (value, event) => {
+    console.log(searchString);
+  };
+
+  const onSearchClick = (value) => {
+    loadGetArtistMBID({
+      variables: { artist: value },
+    });
+  };
 
   return (
     <div>
-      <p>{data.lookup.releaseGroup.title}</p>
+      <SearchField
+        placeholder="Search item"
+        onChange={onChange}
+        onEnter={onEnter}
+        onSearchClick={onSearchClick}
+      />
     </div>
   );
 }
