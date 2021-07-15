@@ -29,11 +29,35 @@ const GetArtistAlbums = gql`
           edges {
             node {
               title
+              mbid
               firstReleaseDate
               coverArtArchive {
                 front
                 back
               }
+              releases {
+                edges {
+                  node {
+                    mbid
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const GetAlbumSongs = gql`
+  query GetAlbumSongs($mbid: MBID!) {
+    lookup {
+      release(mbid: $mbid) {
+        media {
+          tracks {
+            recording {
+              title
             }
           }
         }
@@ -45,15 +69,27 @@ const GetArtistAlbums = gql`
 function App() {
   const [searchString, setSearchString] = useState("");
   const [albums, setAlbums] = useState({});
+  const [images, setImages] = useState([]);
 
   const [
     loadGetArtistAlbums,
     { errorAlbum, loadingAlbum, albumData },
   ] = useLazyQuery(GetArtistAlbums, {
     onCompleted: (queriedAlbums) => {
-      setAlbums(queriedAlbums.lookup.artist.releaseGroups.edges);
-      console.log(queriedAlbums.lookup.artist.releaseGroups.edges);
+      // TODO: see if the album state is needed whatsoever in the end?
+      const albumsToBeSaved = queriedAlbums.lookup.artist.releaseGroups.edges;
+      setAlbums(albumsToBeSaved);
+      setImages(generateImages(albumsToBeSaved))
+      // console.log(queriedAlbums.lookup.artist.releaseGroups.edges);
     },
+  });
+
+  const [
+    loadGetAlbumSongs,
+    { errorSongs, loadingSongs, songData },
+  ] = useLazyQuery(GetAlbumSongs, {
+    onCompleted: (queriedSongs) =>
+      console.log("album tracks fetched", queriedSongs),
   });
 
   const [loadGetArtistMBID, { error, loading, data }] = useLazyQuery(
@@ -66,8 +102,8 @@ function App() {
     }
   );
 
-  if (loading) return <p>Loading... </p>;
-  if (error) return <p>Error...</p>;
+  if (loadingAlbum) return <p>Loading... </p>;
+  if (errorAlbum) return <p>Error...</p>;
 
   const onChange = (value, event) => {
     setSearchString(value);
@@ -84,13 +120,20 @@ function App() {
     });
   };
 
-  const generateImage = (albums) => {
+  const generateImages = (albums) => {
     return albums
       .map((album) => {
-        return album.node.coverArtArchive.front;
+        return {
+          src: album.node.coverArtArchive.front,
+          mbid: album.node.releases.edges[0].node.mbid,
+        };
       })
-      .filter((url) => !!url);
+      .filter((entity) => !!entity.src);
   };
+
+  const loadImages = (images) => {
+    return images.map(image => image.src);
+  }
 
   return (
     <div>
@@ -101,8 +144,11 @@ function App() {
         onSearchClick={onSearchClick}
       />
 
-      {albums.length > 0 ? (
-        <FbImageLibrary images={generateImage(albums)} />
+      {(albums.length > 0) ? (
+        <FbImageLibrary
+          images={loadImages(images)}
+          onClickEach={({ src, index }) => console.log(images[index].mbid)}
+        />
       ) : (
         ""
       )}
