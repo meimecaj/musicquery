@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { gql, useLazyQuery } from "@apollo/client";
 import SearchField from "react-search-field";
 import FbImageLibrary from "react-fb-image-grid";
+import SongListModal from "./components/SongListModal";
 
 const GetArtistMBID = gql`
   query GetArtistMBID($artist: String!) {
@@ -68,8 +69,11 @@ const GetAlbumSongs = gql`
 
 function App() {
   const [searchString, setSearchString] = useState("");
+  // TODO: search string might not be needed at all in the end
   const [albums, setAlbums] = useState({});
   const [images, setImages] = useState([]);
+  const [songs, setSongs] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const [
     loadGetArtistAlbums,
@@ -79,8 +83,7 @@ function App() {
       // TODO: see if the album state is needed whatsoever in the end?
       const albumsToBeSaved = queriedAlbums.lookup.artist.releaseGroups.edges;
       setAlbums(albumsToBeSaved);
-      setImages(generateImages(albumsToBeSaved))
-      // console.log(queriedAlbums.lookup.artist.releaseGroups.edges);
+      setImages(generateImages(albumsToBeSaved));
     },
   });
 
@@ -88,8 +91,10 @@ function App() {
     loadGetAlbumSongs,
     { errorSongs, loadingSongs, songData },
   ] = useLazyQuery(GetAlbumSongs, {
-    onCompleted: (queriedSongs) =>
-      console.log("album tracks fetched", queriedSongs),
+    onCompleted: (queriedSongs) => {
+      setSongs(queriedSongs.lookup.release.media);
+      setModalOpen(true);
+    },
   });
 
   const [loadGetArtistMBID, { error, loading, data }] = useLazyQuery(
@@ -110,11 +115,12 @@ function App() {
   };
 
   const onEnter = (value, event) => {
-    console.log(searchString);
+    loadGetArtistMBID({
+      variables: { artist: value },
+    });
   };
 
   const onSearchClick = (value) => {
-    // TODO: clear state before each search
     loadGetArtistMBID({
       variables: { artist: value },
     });
@@ -132,8 +138,12 @@ function App() {
   };
 
   const loadImages = (images) => {
-    return images.map(image => image.src);
-  }
+    return images.map((image) => image.src);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+  };
 
   return (
     <div>
@@ -144,10 +154,24 @@ function App() {
         onSearchClick={onSearchClick}
       />
 
-      {(albums.length > 0) ? (
+      {albums.length > 0 ? (
         <FbImageLibrary
           images={loadImages(images)}
-          onClickEach={({ src, index }) => console.log(images[index].mbid)}
+          onClickEach={({ src, index }) =>
+            loadGetAlbumSongs({
+              variables: { mbid: images[index].mbid },
+            })
+          }
+        />
+      ) : (
+        ""
+      )}
+
+      {songs.length > 0 ? (
+        <SongListModal
+          open={modalOpen}
+          songList={songs}
+          close={() => closeModal}
         />
       ) : (
         ""
