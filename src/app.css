@@ -1,0 +1,15 @@
+.search {
+    max-width: 300px;
+    margin: 1% auto auto auto;
+    border-radius: 5px;
+}
+
+.wrapper {
+    text-align: center;
+}
+
+.grid-wrapper {
+    width: 50%;
+    height: 50%;
+    margin: auto;
+}

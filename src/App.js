@@ -3,6 +3,7 @@ import { gql, useLazyQuery } from "@apollo/client";
 import SearchField from "react-search-field";
 import FbImageLibrary from "react-fb-image-grid";
 import SongListModal from "./components/SongListModal";
+import "./app.css";
 
 const GetArtistMBID = gql`
   query GetArtistMBID($artist: String!) {
@@ -26,7 +27,7 @@ const GetArtistAlbums = gql`
     lookup {
       artist(mbid: $mbid) {
         name
-        releaseGroups(type: ALBUM) {
+        releaseGroups(type: ALBUM, first: 5) {
           edges {
             node {
               title
@@ -146,27 +147,30 @@ function App() {
   };
 
   return (
-    <div>
+    <div className="wrapper">
       <SearchField
         placeholder="Search item"
         onChange={onChange}
         onEnter={onEnter}
         onSearchClick={onSearchClick}
+        classNames="search"
+        placeholder="Type the artist/band name"
       />
-
-      {albums.length > 0 ? (
-        <FbImageLibrary
-          images={loadImages(images)}
-          onClickEach={({ src, index }) =>
-            loadGetAlbumSongs({
-              variables: { mbid: images[index].mbid },
-            })
-          }
-        />
-      ) : (
-        ""
-      )}
-
+      <div className="grid-wrapper">
+        {albums.length > 0 ? (
+          <FbImageLibrary
+            images={loadImages(images)}
+            renderOverlay={() => "See song list"}
+            onClickEach={({ src, index }) =>
+              loadGetAlbumSongs({
+                variables: { mbid: images[index].mbid },
+              })
+            }
+          />
+        ) : (
+          ""
+        )}
+      </div>
       {songs.length > 0 ? (
         <SongListModal
           open={modalOpen}

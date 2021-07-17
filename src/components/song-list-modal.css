@@ -1,0 +1,11 @@
+.button {
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  float: right;
+}
+
+.modal-content-wrapper {
+    margin-top: 10px;
+    clear: both;
+}

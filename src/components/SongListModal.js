@@ -1,5 +1,6 @@
 import React from "react";
 import Modal from "react-modal";
+import "./song-list-modal.css";
 
 const customStyles = {
   content: {
@@ -17,14 +18,18 @@ Modal.setAppElement("#root");
 function SongListModal(props) {
   return (
     <Modal isOpen={props.open} style={customStyles}>
-      <button onClick={props.close()}>Close song list</button>
-      <ol>
-        {props.songList.map((media) => {
-          return media.tracks.map((song) => {
-            return <li>{song.recording.title}</li>;
-          });
-        })}
-      </ol>
+      <button className="button" onClick={props.close()}>
+          <i className="fa fa-close"></i>
+        </button>
+      <div className="modal-content-wrapper">
+        <ol>
+          {props.songList.map((media) => {
+            return media.tracks.map((song) => {
+              return <li>{song.recording.title}</li>;
+            });
+          })}
+        </ol>
+      </div>
     </Modal>
   );
 }
