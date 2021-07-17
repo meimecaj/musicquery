@@ -1,119 +1,49 @@
 import React, { useState } from "react";
-import { gql, useLazyQuery } from "@apollo/client";
+import { useLazyQuery } from "@apollo/client";
 import SearchField from "react-search-field";
 import FbImageLibrary from "react-fb-image-grid";
 import SongListModal from "../SongListModal/SongListModal";
+import GetAlbumSongs from "../../queries/GetAlbumSongs";
+import GetArtistAlbums from "../../queries/GetArtistAlbums";
+import GetArtistMBID from "../../queries/GetArtistMBID";
 import "./app.css";
 
-const GetArtistMBID = gql`
-  query GetArtistMBID($artist: String!) {
-    search {
-      artists(query: $artist, first: 1) {
-        edges {
-          node {
-            id
-            mbid
-            name
-            disambiguation
-          }
-        }
-      }
-    }
-  }
-`;
-
-const GetArtistAlbums = gql`
-  query GetArtistAlbums($mbid: MBID!) {
-    lookup {
-      artist(mbid: $mbid) {
-        name
-        releaseGroups(type: ALBUM, first: 5) {
-          edges {
-            node {
-              title
-              mbid
-              firstReleaseDate
-              coverArtArchive {
-                front
-                back
-              }
-              releases {
-                edges {
-                  node {
-                    mbid
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const GetAlbumSongs = gql`
-  query GetAlbumSongs($mbid: MBID!) {
-    lookup {
-      release(mbid: $mbid) {
-        media {
-          tracks {
-            recording {
-              title
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
 function App() {
-  const [searchString, setSearchString] = useState("");
-  // TODO: search string might not be needed at all in the end
   const [albums, setAlbums] = useState({});
   const [images, setImages] = useState([]);
   const [songs, setSongs] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const [
-    loadGetArtistAlbums,
-    { errorAlbum, loadingAlbum, albumData },
-  ] = useLazyQuery(GetArtistAlbums, {
-    onCompleted: (queriedAlbums) => {
-      // TODO: see if the album state is needed whatsoever in the end?
-      const albumsToBeSaved = queriedAlbums.lookup.artist.releaseGroups.edges;
-      setAlbums(albumsToBeSaved);
-      setImages(generateImages(albumsToBeSaved));
-    },
-  });
-
-  const [
-    loadGetAlbumSongs,
-    { errorSongs, loadingSongs, songData },
-  ] = useLazyQuery(GetAlbumSongs, {
-    onCompleted: (queriedSongs) => {
-      setSongs(queriedSongs.lookup.release.media);
-      setModalOpen(true);
-    },
-  });
-
-  const [loadGetArtistMBID, { error, loading, data }] = useLazyQuery(
-    GetArtistMBID,
+  const [loadGetArtistAlbums, { errorAlbum, loadingAlbum }] = useLazyQuery(
+    GetArtistAlbums,
     {
-      onCompleted: (data) =>
-        loadGetArtistAlbums({
-          variables: { mbid: data.search.artists.edges[0].node.mbid },
-        }),
+      onCompleted: (queriedAlbums) => {
+        const albumsToBeSaved = queriedAlbums.lookup.artist.releaseGroups.edges;
+        setAlbums(albumsToBeSaved);
+        setImages(generateImages(albumsToBeSaved));
+      },
     }
   );
 
-  if (loadingAlbum) return <p>Loading... </p>;
-  if (errorAlbum) return <p>Error...</p>;
+  const [loadGetAlbumSongs, { errorSongs, loadingSongs }] = useLazyQuery(
+    GetAlbumSongs,
+    {
+      onCompleted: (queriedSongs) => {
+        setSongs(queriedSongs.lookup.release.media);
+        setModalOpen(true);
+      },
+    }
+  );
 
-  const onChange = (value, event) => {
-    setSearchString(value);
-  };
+  const [loadGetArtistMBID, { error, loading }] = useLazyQuery(GetArtistMBID, {
+    onCompleted: (data) =>
+      loadGetArtistAlbums({
+        variables: { mbid: data.search.artists.edges[0].node.mbid },
+      }),
+  });
+
+  if (loadingAlbum || loading || loadingSongs) return <h1>Loading... </h1>;
+  if (errorAlbum || error || errorSongs) return <h1>Error...</h1>;
 
   const onEnter = (value, event) => {
     loadGetArtistMBID({
@@ -149,8 +79,6 @@ function App() {
   return (
     <div className="wrapper">
       <SearchField
-        placeholder="Search item"
-        onChange={onChange}
         onEnter={onEnter}
         onSearchClick={onSearchClick}
         classNames="search"

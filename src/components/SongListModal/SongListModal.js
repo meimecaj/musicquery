@@ -14,7 +14,7 @@ const customStyles = {
 };
 
 Modal.setAppElement("#root");
-
+  
 function SongListModal(props) {
   return (
     <Modal isOpen={props.open} style={customStyles}>
@@ -25,7 +25,7 @@ function SongListModal(props) {
         <ol>
           {props.songList.map((media) => {
             return media.tracks.map((song) => {
-              return <li>{song.recording.title}</li>;
+              return <li key={Math.random().toString(36).substring(7)}>{song.recording.title}</li>;
             });
           })}
         </ol>
