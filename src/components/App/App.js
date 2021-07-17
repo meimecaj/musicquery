@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { gql, useLazyQuery } from "@apollo/client";
 import SearchField from "react-search-field";
 import FbImageLibrary from "react-fb-image-grid";
-import SongListModal from "./components/SongListModal";
+import SongListModal from "../SongListModal/SongListModal";
 import "./app.css";
 
 const GetArtistMBID = gql`
